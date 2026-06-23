@@ -643,15 +643,15 @@
         </item>
         <item>
             <title>Version 0.4.0</title>
-            <pubDate>Tue, 23 Jun 2026 02:30:15 -0700</pubDate>
+            <pubDate>Tue, 23 Jun 2026 03:36:29 -0700</pubDate>
             <sparkle:version>55</sparkle:version>
             <sparkle:shortVersionString>0.4.0</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>26.0</sparkle:minimumSystemVersion>
             <enclosure
                 url="https://github.com/palmier-io/palmier-pro/releases/download/v0.4.0/PalmierPro.dmg"
-                length="31741740"
+                length="26707189"
                 type="application/octet-stream"
-                sparkle:edSignature="mSyOhKMk2Nb2sjzLZ2ImocXAsIqgrm+fODFEkYdRGF6o4ncKI/rW9J/HBYs20XbMOk8PT4JlFkH3+EA7r7bJBg=="/>
+                sparkle:edSignature="44GnDktXJQbZf4aWrmv0i5MQPtYrH74ilapLaRLpGGwVKD9vVp/l7DNMVm8j3sFMcOckPcZKWAET2VZmf0fXCA=="/>
         </item>
     </channel>
 </rss>

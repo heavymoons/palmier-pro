@@ -4,6 +4,8 @@ import Foundation
 /// Loads Core Image kernels from the plugin-compiled `.metallib` resources.
 enum CIKernelLoader {
     private static func metallibURL(_ lib: String) -> URL? {
+        // Bundle.module resolves under SwiftPM (tests); the shipped .app finds it via Bundle.main instead.
+        if let url = Bundle.module.url(forResource: lib, withExtension: "metallib") { return url }
         guard let resourceURL = Bundle.main.resourceURL else { return nil }
         let candidates = [
             resourceURL.appendingPathComponent("\(lib).metallib"),

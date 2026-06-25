@@ -114,13 +114,26 @@ struct ExportView: View {
                             .foregroundStyle(AppTheme.Text.tertiaryColor)
                     }
 
-                case .xml:
+                case .fcpxml:
                     VStack(alignment: .leading, spacing: AppTheme.Spacing.xs) {
-                        Text("Exports your timeline as XML for use in other editors.")
+                        Text("Exports your timeline for Final Cut Pro, including text overlays.")
                             .font(.system(size: AppTheme.FontSize.sm))
                             .foregroundStyle(AppTheme.Text.secondaryColor)
 
-                        Text("Works with DaVinci Resolve, Premiere Pro, and Final Cut Pro.")
+                        Text("Text shadows, borders, backgrounds, Lottie, and keyframe easing are not included.")
+                            .font(.system(size: AppTheme.FontSize.xs))
+                            .foregroundStyle(AppTheme.Text.tertiaryColor)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.vertical, AppTheme.Spacing.sm)
+
+                case .xml:
+                    VStack(alignment: .leading, spacing: AppTheme.Spacing.xs) {
+                        Text("Exports your timeline as XML for interchange with other editors.")
+                            .font(.system(size: AppTheme.FontSize.sm))
+                            .foregroundStyle(AppTheme.Text.secondaryColor)
+
+                        Text("Works with Premiere Pro, DaVinci Resolve, and Final Cut Pro 7.")
                             .font(.system(size: AppTheme.FontSize.xs))
                             .foregroundStyle(AppTheme.Text.tertiaryColor)
 
@@ -199,7 +212,7 @@ struct ExportView: View {
                     }
                     let out = resolution.renderSize(for: CGSize(width: editor.timeline.width, height: editor.timeline.height))
                     Text("\(Int(out.width))×\(Int(out.height))")
-                case .xml:
+                case .fcpxml, .xml:
                     Text("\(editor.timeline.width)×\(editor.timeline.height)")
                 case .palmierProject:
                     HStack(spacing: AppTheme.Spacing.xs) {
@@ -255,6 +268,7 @@ struct ExportView: View {
     private var exportFormat: ExportFormat {
         switch mode {
         case .xml, .palmierProject: .xml   // palmierProject has its own path; never rendered
+        case .fcpxml: .fcpxml
         case .video: codec.exportFormat
         }
     }
@@ -301,19 +315,27 @@ struct ExportView: View {
         if mode == .palmierProject { startPalmierExport(); return }
         let format = exportFormat
         let panel = NSSavePanel()
-        panel.allowedContentTypes = [
-            format == .xml
-                ? .xml
-                : (format == .prores ? .movie : .mpeg4Movie)
-        ]
+        panel.allowedContentTypes = [contentType(for: format)]
         panel.nameFieldStringValue = "export.\(format.fileExtension)"
+
+        // fcpxml runs detached off the @MainActor, so it must not capture the
+        // live editor-backed resolver. Snapshot manifest/projectURL here on the
+        // @MainActor and hand the export a value-only resolver.
+        let resolver: MediaResolver
+        if format == .fcpxml {
+            let manifest = editor.mediaManifest
+            let projectURL = editor.projectURL
+            resolver = MediaResolver(manifest: { manifest }, projectURL: { projectURL })
+        } else {
+            resolver = editor.mediaResolver
+        }
 
         panel.begin { response in
             guard response == .OK, let url = panel.url else { return }
             Task {
                 await service.export(
                     timeline: editor.timeline,
-                    resolver: editor.mediaResolver,
+                    resolver: resolver,
                     format: format,
                     resolution: resolution,
                     outputURL: url
@@ -322,6 +344,21 @@ struct ExportView: View {
                     editor.showExportDialog = false
                 }
             }
+        }
+    }
+
+    private func contentType(for format: ExportFormat) -> UTType {
+        switch format {
+        case .fcpxml:
+            UTType(filenameExtension: "fcpxml")
+                ?? UTType("com.apple.final-cut-pro-xml")
+                ?? .xml
+        case .xml:
+            .xml
+        case .prores:
+            .movie
+        case .h264, .h265:
+            .mpeg4Movie
         }
     }
 

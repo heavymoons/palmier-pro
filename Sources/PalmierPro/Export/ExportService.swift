@@ -53,6 +53,29 @@ final class ExportService {
             return
         }
 
+        if format == .fcpxml {
+            Log.export.notice(
+                "export requested format=fcpxml",
+                telemetry: "Export started",
+                data: ["format": "fcpxml", "tracks": timeline.tracks.count, "clips": timeline.tracks.reduce(0) { $0 + $1.clips.count }]
+            )
+            do {
+                try await Task.detached {
+                    try FCPXMLExporter.export(timeline: timeline, resolver: resolver, outputURL: outputURL)
+                }.value
+                progress = 1.0
+                Log.export.notice("export ok format=fcpxml", telemetry: "Export finished", data: ["format": "fcpxml"])
+            } catch {
+                self.error = Log.detail(error)
+                Log.export.error(
+                    "export failed format=fcpxml: \(Log.detail(error))",
+                    telemetry: "Export failed",
+                    data: ["format": "fcpxml", "error": Log.detail(error)]
+                )
+            }
+            return
+        }
+
         if acquireSlot {
             await ExportCoordinator.acquireExport()
         }
@@ -261,8 +284,8 @@ final class ExportService {
             }
         case .prores:
             AVAssetExportPresetAppleProRes422LPCM
-        case .xml:
-            AVAssetExportPresetPassthrough // unreachable — XML returns early
+        case .xml, .fcpxml:
+            AVAssetExportPresetPassthrough // unreachable — XML/FCPXML return early
         }
     }
 }

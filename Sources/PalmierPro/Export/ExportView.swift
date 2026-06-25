@@ -2,29 +2,12 @@ import AVFoundation
 import SwiftUI
 import UniformTypeIdentifiers
 
-enum ExportMode: String, CaseIterable, Identifiable {
-    case video = "Video (.mp4)"
-    case fcpxml = "Final Cut Pro (.fcpxml)"
-    case xml = "Timeline (.xml)"
-    case palmierProject = "Palmier Project (.palmier)"
-
-    var id: String { rawValue }
-}
-
-enum VideoCodec: String, CaseIterable, Identifiable {
-    case h264 = "H.264"
-    case h265 = "H.265"
-    case prores = "ProRes"
-
-    var id: String { rawValue }
-}
-
 struct ExportView: View {
     @Environment(EditorViewModel.self) var editor
     @State private var service = ExportService()
     @State private var mode: ExportMode = .video
     @State private var codec: VideoCodec = .h264
-    @State private var resolution: ExportResolution = .r1080p
+    @State private var resolution: ExportResolution = .matchTimeline
     @State private var preview: NSImage?
     @State private var palmierResult: String?
     @State private var palmierSummary: (collect: Int, missing: Int, bytes: Int64) = (0, 0, 0)
@@ -270,7 +253,7 @@ struct ExportView: View {
 
     private var estimatedFileSize: String {
         let seconds = Double(editor.timeline.totalFrames) / Double(max(1, editor.timeline.fps))
-        // Bitrate scales with output pixel area, so any resolution (incl. 2K / native) is covered.
+        // Bitrate scales with output pixel area, so any resolution is covered.
         let out = resolution.renderSize(for: CGSize(width: editor.timeline.width, height: editor.timeline.height))
         let megapixels = Double(out.width * out.height) / 1_000_000
         let bytesPerSecPerMP: Double = switch codec {
@@ -286,12 +269,7 @@ struct ExportView: View {
         switch mode {
         case .xml, .palmierProject: .xml   // palmierProject has its own path; never rendered
         case .fcpxml: .fcpxml
-        case .video:
-            switch codec {
-            case .h264: .h264
-            case .h265: .h265
-            case .prores: .prores
-            }
+        case .video: codec.exportFormat
         }
     }
 
